@@ -21,16 +21,16 @@
 
 ```bash
 # 安装全部 Skills
-npx skills add xjk/context-engineering-skill
+npx skills add WakeUp-Jin/context-engineering-skill
 
 # 安装单个 Skill
-npx skills add xjk/context-engineering-skill/ce-tool-management
+npx skills add WakeUp-Jin/context-engineering-skill/ce-tool-management
 ```
 
 ### 方式二：手动安装
 
 ```bash
-git clone https://github.com/xjk/context-engineering-skill.git
+git clone https://github.com/WakeUp-Jin/context-engineering-skill
 cp -r context-engineering-skill/skills/ce-* ~/.cursor/skills/
 ```
 
