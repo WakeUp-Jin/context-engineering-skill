@@ -1,0 +1,1253 @@
+这个仓库是准备作为这个项目的Skill，我想要为这个上下文实践指南创建一个Skill，
+后续我想要实现的是：如果我想要实现一个上下文实践指南说的上下文组成的时候，我可以使用上下文模块创建的Skill中的文档，如果我想要创建工具管理的话，也可以使用相应的SKill中的文档
+
+重点可以看一下上下文实践指南项目：/Users/xjk/Desktop/docs/Practical Guide to Context Engineering/docs/前言/从零到一：基于上下文工程的 Agent 后端设计.md
+
+上下文实践指南项目：/Users/xjk/Desktop/docs/Practical Guide to Context Engineering
+
+相应的项目：/Users/xjk/Desktop/ScriptCode/context-template-cli/my-llm-app
+实践的项目：/Users/xjk/Desktop/ScriptCode/reason-code/packages/core
+
+我们一起来分析一下这个Skill怎么创建，使用技能创建的SKill/Users/xjk/.agents/skills/skill-creator/SKILL.md
+
+---
+
+需要补充的是：工具管理的Skill的md，它在reasoncode里面设计的非常优秀，所以我喜欢在这个大skill可以嵌套一个小的skill吗？每一个关键的模块都是一个skill，例如：工具管理里面有非常优秀的审核设计，工具的定义，工具的注册，工具的执行状态，这个在reason-code这个项目最明显的实现，我觉得是最佳实现，还有工具输出的压缩之类的
+
+设置这个工具管理的Skill里面还有区分出来一些工具的实现，读取，搜索之类的工具实现，
+
+上下文的管理里面，有各种类，还有上下文压缩的实现等方式
+
+LLM模块正常，还有Agent的评估的方式，
+
+这些都可以详细一些
+
+子智能体一律使用opus4.6的模型，绝对不允许使用其他的模型
+
+---
+
+这几个大模块，里面也可以写Skill的吗？skill里面可以嵌套skill吗？这个是最佳实践吗？
+
+不允许使用子智能体，包括接下来的对话，除非我要求你使用子智能体，不能默认情况下不允许使用子智能体，把这个规则写入到全局规则文件里面，或者全局记忆里面去
+
+---
+
+<external_links>
+### Potentially Relevant Websearch Results
+
+You should respond as if these information are known to you. Refrain from saying "I am unable to browse the internet" or "I don't have access to the internet" or "I'm unable to provide real-time news updates". This is your internet search results. Please always cite any links you referenced from the above search results in your response in markdown format.
+
+-------
+Website URL: https://github.com/vercel-labs/agent-skills?tab=readme-ov-file
+Website Title: GitHub - vercel-labs/agent-skills: Vercel's official collection of agent skills · GitHub
+Website Content:
+Skip to content 
+
+## Navigation Menu
+
+Toggle navigation 
+
+ Sign in 
+
+Appearance settings 
+
+* Platform  
+   * AI CODE CREATION  
+         * GitHub CopilotWrite better code with AI  
+         * GitHub SparkBuild and deploy intelligent apps  
+         * GitHub ModelsManage and compare prompts  
+         * MCP RegistryNewIntegrate external tools  
+   * DEVELOPER WORKFLOWS  
+         * ActionsAutomate any workflow  
+         * CodespacesInstant dev environments  
+         * IssuesPlan and track work  
+         * Code ReviewManage code changes  
+   * APPLICATION SECURITY  
+         * GitHub Advanced SecurityFind and fix vulnerabilities  
+         * Code securitySecure your code as you build  
+         * Secret protectionStop leaks before they start  
+   * EXPLORE  
+         * Why GitHub  
+         * Documentation  
+         * Blog  
+         * Changelog  
+         * Marketplace  
+View all features
+* Solutions  
+   * BY COMPANY SIZE  
+         * Enterprises  
+         * Small and medium teams  
+         * Startups  
+         * Nonprofits  
+   * BY USE CASE  
+         * App Modernization  
+         * DevSecOps  
+         * DevOps  
+         * CI/CD  
+         * View all use cases  
+   * BY INDUSTRY  
+         * Healthcare  
+         * Financial services  
+         * Manufacturing  
+         * Government  
+         * View all industries  
+View all solutions
+* Resources  
+   * EXPLORE BY TOPIC  
+         * AI  
+         * Software Development  
+         * DevOps  
+         * Security  
+         * View all topics  
+   * EXPLORE BY TYPE  
+         * Customer stories  
+         * Events & webinars  
+         * Ebooks & reports  
+         * Business insights  
+         * GitHub Skills  
+   * SUPPORT & SERVICES  
+         * Documentation  
+         * Customer support  
+         * Community forum  
+         * Trust center  
+         * Partners  
+View all resources
+* Open Source  
+   * COMMUNITY  
+         * GitHub SponsorsFund open source developers  
+   * PROGRAMS  
+         * Security Lab  
+         * Maintainer Community  
+         * Accelerator  
+         * GitHub Stars  
+         * Archive Program  
+   * REPOSITORIES  
+         * Topics  
+         * Trending  
+         * Collections
+* Enterprise  
+   * ENTERPRISE SOLUTIONS  
+         * Enterprise platformAI-powered developer platform  
+   * AVAILABLE ADD-ONS  
+         * GitHub Advanced SecurityEnterprise-grade security features  
+         * Copilot for BusinessEnterprise-grade AI features  
+         * Premium SupportEnterprise-grade 24/7 support
+* Pricing
+
+Search or jump to... 
+
+# Search code, repositories, users, issues, pull requests...
+
+ Search 
+
+Clear 
+
+Search syntax tips 
+
+#  Provide feedback
+
+We read every piece of feedback, and take your input very seriously.
+
+Include my email address so I can be contacted 
+
+ Cancel  Submit feedback 
+
+#  Saved searches
+
+## Use saved searches to filter your results more quickly
+
+Name 
+
+Query 
+
+ To see all available qualifiers, see our documentation.
+
+ Cancel  Create saved search 
+
+ Sign in 
+
+ Sign up 
+
+Appearance settings 
+
+Resetting focus 
+
+You signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert 
+
+{{ message }}
+
+ vercel-labs / **agent-skills** Public 
+
+* Notifications You must be signed in to change notification settings
+* Fork2.1k
+* Star 23.3k
+
+* Code
+* Issues 44
+* Pull requests 55
+* Actions
+* Projects
+* Security 0
+* Insights
+
+Additional navigation options 
+
+* Code
+* Issues
+* Pull requests
+* Actions
+* Projects
+* Security
+* Insights
+
+# vercel-labs/agent-skills
+
+main
+
+BranchesTags
+
+Go to file
+
+Code
+
+Open more actions menu
+
+## Folders and files
+
+| Name                                                                                                                                                       | Name                                                                                                                                                       | Last commit message | Last commit date |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | ---------------- |
+| Latest commit History[130 Commits](/vercel-labs/agent-skills/commits/main/)130 Commits                                                                     |                                                                                                                                                            |                     |                  |
+| [.github/workflows](/vercel-labs/agent-skills/tree/main/.github/workflows "This path skips through empty directories")                                     | [.github/workflows](/vercel-labs/agent-skills/tree/main/.github/workflows "This path skips through empty directories")                                     |                     |                  |
+| [packages/react-best-practices-build](/vercel-labs/agent-skills/tree/main/packages/react-best-practices-build "This path skips through empty directories") | [packages/react-best-practices-build](/vercel-labs/agent-skills/tree/main/packages/react-best-practices-build "This path skips through empty directories") |                     |                  |
+| [skills](/vercel-labs/agent-skills/tree/main/skills "skills")                                                                                              | [skills](/vercel-labs/agent-skills/tree/main/skills "skills")                                                                                              |                     |                  |
+| [.gitignore](/vercel-labs/agent-skills/blob/main/.gitignore ".gitignore")                                                                                  | [.gitignore](/vercel-labs/agent-skills/blob/main/.gitignore ".gitignore")                                                                                  |                     |                  |
+| [AGENTS.md](/vercel-labs/agent-skills/blob/main/AGENTS.md "AGENTS.md")                                                                                     | [AGENTS.md](/vercel-labs/agent-skills/blob/main/AGENTS.md "AGENTS.md")                                                                                     |                     |                  |
+| [CLAUDE.md](/vercel-labs/agent-skills/blob/main/CLAUDE.md "CLAUDE.md")                                                                                     | [CLAUDE.md](/vercel-labs/agent-skills/blob/main/CLAUDE.md "CLAUDE.md")                                                                                     |                     |                  |
+| [README.md](/vercel-labs/agent-skills/blob/main/README.md "README.md")                                                                                     | [README.md](/vercel-labs/agent-skills/blob/main/README.md "README.md")                                                                                     |                     |                  |
+| View all files                                                                                                                                             |                                                                                                                                                            |                     |                  |
+
+## Repository files navigation
+
+* README
+
+# Agent Skills
+
+A collection of skills for AI coding agents. Skills are packaged instructions and scripts that extend agent capabilities.
+
+Skills follow the Agent Skills format.
+
+## Available Skills
+
+### react-best-practices
+
+React and Next.js performance optimization guidelines from Vercel Engineering. Contains 40+ rules across 8 categories, prioritized by impact.
+
+**Use when:**
+
+* Writing new React components or Next.js pages
+* Implementing data fetching (client or server-side)
+* Reviewing code for performance issues
+* Optimizing bundle size or load times
+
+**Categories covered:**
+
+* Eliminating waterfalls (Critical)
+* Bundle size optimization (Critical)
+* Server-side performance (High)
+* Client-side data fetching (Medium-High)
+* Re-render optimization (Medium)
+* Rendering performance (Medium)
+* JavaScript micro-optimizations (Low-Medium)
+
+### web-design-guidelines
+
+Review UI code for compliance with web interface best practices. Audits your code for 100+ rules covering accessibility, performance, and UX.
+
+**Use when:**
+
+* "Review my UI"
+* "Check accessibility"
+* "Audit design"
+* "Review UX"
+* "Check my site against best practices"
+
+**Categories covered:**
+
+* Accessibility (aria-labels, semantic HTML, keyboard handlers)
+* Focus States (visible focus, focus-visible patterns)
+* Forms (autocomplete, validation, error handling)
+* Animation (prefers-reduced-motion, compositor-friendly transforms)
+* Typography (curly quotes, ellipsis, tabular-nums)
+* Images (dimensions, lazy loading, alt text)
+* Performance (virtualization, layout thrashing, preconnect)
+* Navigation & State (URL reflects state, deep-linking)
+* Dark Mode & Theming (color-scheme, theme-color meta)
+* Touch & Interaction (touch-action, tap-highlight)
+* Locale & i18n (Intl.DateTimeFormat, Intl.NumberFormat)
+
+### react-native-guidelines
+
+React Native best practices optimized for AI agents. Contains 16 rules across 7 sections covering performance, architecture, and platform-specific patterns.
+
+**Use when:**
+
+* Building React Native or Expo apps
+* Optimizing mobile performance
+* Implementing animations or gestures
+* Working with native modules or platform APIs
+
+**Categories covered:**
+
+* Performance (Critical) - FlashList, memoization, heavy computation
+* Layout (High) - flex patterns, safe areas, keyboard handling
+* Animation (High) - Reanimated, gesture handling
+* Images (Medium) - expo-image, caching, lazy loading
+* State Management (Medium) - Zustand patterns, React Compiler
+* Architecture (Medium) - monorepo structure, imports
+* Platform (Medium) - iOS/Android specific patterns
+
+### composition-patterns
+
+React composition patterns that scale. Helps avoid boolean prop proliferation through compound components, state lifting, and internal composition.
+
+**Use when:**
+
+* Refactoring components with many boolean props
+* Building reusable component libraries
+* Designing flexible APIs
+* Reviewing component architecture
+
+**Patterns covered:**
+
+* Extracting compound components
+* Lifting state to reduce props
+* Composing internals for flexibility
+* Avoiding prop drilling
+
+### vercel-deploy-claimable
+
+Deploy applications and websites to Vercel instantly. Designed for use with claude.ai and Claude Desktop to enable deployments directly from conversations. Deployments are "claimable" - users can transfer ownership to their own Vercel account.
+
+**Use when:**
+
+* "Deploy my app"
+* "Deploy this to production"
+* "Push this live"
+* "Deploy and give me the link"
+
+**Features:**
+
+* Auto-detects 40+ frameworks from `package.json`
+* Returns preview URL (live site) and claim URL (transfer ownership)
+* Handles static HTML projects automatically
+* Excludes `node_modules` and `.git` from uploads
+
+**How it works:**
+
+1. Packages your project into a tarball
+2. Detects framework (Next.js, Vite, Astro, etc.)
+3. Uploads to deployment service
+4. Returns preview URL and claim URL
+
+**Output:**
+
+```
+Deployment successful!
+
+Preview URL: https://skill-deploy-abc123.vercel.app
+Claim URL:   https://vercel.com/claim-deployment?code=...
+
+```
+
+## Installation
+
+npx skills add vercel-labs/agent-skills
+
+## Usage
+
+Skills are automatically available once installed. The agent will use them when relevant tasks are detected.
+
+**Examples:**
+
+```
+Deploy my app
+
+```
+
+```
+Review this React component for performance issues
+
+```
+
+```
+Help me optimize this Next.js page
+
+```
+
+## Skill Structure
+
+Each skill contains:
+
+* `SKILL.md` \- Instructions for the agent
+* `scripts/` \- Helper scripts for automation (optional)
+* `references/` \- Supporting documentation (optional)
+
+## License
+
+MIT
+
+## About
+
+ Vercel's official collection of agent skills
+
+skills.sh/vercel-labs/agent-skills 
+
+### Resources
+
+ Readme 
+
+###  Uh oh!
+
+There was an error while loading. Please reload this page.
+
+Activity 
+
+Custom properties 
+
+### Stars
+
+**23.3k** stars 
+
+### Watchers
+
+**107** watching 
+
+### Forks
+
+**2.1k** forks 
+
+ Report repository 
+
+## Releases
+
+No releases published
+
+## Packages0
+
+###  Uh oh!
+
+There was an error while loading. Please reload this page.
+
+## Contributors 
+
+###  Uh oh!
+
+There was an error while loading. Please reload this page.
+
+## Languages
+
+* JavaScript 41.9%
+* Shell 34.5%
+* TypeScript 23.6%
+
+## Footer
+
+ © 2026 GitHub, Inc. 
+
+### Footer navigation
+
+* Terms
+* Privacy
+* Security
+* Status
+* Community
+* Docs
+* Contact
+* Manage cookies
+* Do not share my personal information
+
+ You can’t perform that action at this time.
+____
+
+</external_links>
+
+现在这个skill设计的一般哈哈哈，我们在调整一下，应该每一个文件是一个skill，最外面只需要一个简单的README
+然后在文件夹的地方统一一下前缀
+
+你可以看看这个的实现：https://github.com/vercel-labs/agent-skills?tab=readme-ov-file
+
+---
+
+<attached_files>
+
+<code_selection path="file:///Users/xjk/.cursor/plans/%E9%87%8D%E6%9E%84%E4%B8%BA%E5%A4%9A_skill_%E9%9B%86%E5%90%88_b99b9a31.plan.md" lines="1-114">
+     1|---
+     2|name: 重构为多 Skill 集合
+     3|overview: 参考 Vercel agent-skills 的模式，将仓库重构为 Skill 集合。根目录只有 README.md，skills/ 目录下每个核心模块是独立的 Skill（各自有 SKILL.md + references/），统一使用 `ce-` 前缀命名。
+     4|todos:
+     5|  - id: create-readme
+     6|    content: 创建根 README.md 列出所有 skills
+     7|    status: pending
+     8|  - id: delete-old
+     9|    content: 删除旧的 SKILL.md 和 references/ 目录
+    10|    status: pending
+    11|  - id: create-overview-skill
+    12|    content: 创建 skills/ce-overview/SKILL.md
+    13|    status: pending
+    14|  - id: create-tool-skill
+    15|    content: 创建 skills/ce-tool-management/ (SKILL.md + 移动 references)
+    16|    status: pending
+    17|  - id: create-context-skill
+    18|    content: 创建 skills/ce-context-management/ (SKILL.md + 移动 references)
+    19|    status: pending
+    20|  - id: create-llm-skill
+    21|    content: 创建 skills/ce-llm-module/ (SKILL.md + 移动 references)
+    22|    status: pending
+    23|  - id: create-agent-skill
+    24|    content: 创建 skills/ce-agent-patterns/ (SKILL.md + 移动 references)
+    25|    status: pending
+    26|  - id: create-eval-skill
+    27|    content: 创建 skills/ce-evaluation/ (SKILL.md + 移动 references)
+    28|    status: pending
+    29|isProject: false
+    30|---
+    31|
+    32|# 重构为 Skill 集合（参考 Vercel agent-skills 模式）
+    33|
+    34|## Vercel 的模式
+    35|
+    36|参考 [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) 的结构：
+    37|
+    38|- 仓库根目录：`README.md`（列出所有可用 skills）
+    39|- `skills/` 目录：每个子目录是一个独立 Skill
+    40|- 每个 Skill 有自己的 `SKILL.md` + 可选的 `references/`
+    41|
+    42|## 新目录结构
+    43|
+    44|统一使用 `ce-` (context-engineering) 前缀：
+    45|
+    46|```
+    47|context-engineering-skill/
+    48|├── README.md                                    # 仓库说明（列出所有 skills）
+    49|│
+    50|└── skills/
+    51|    ├── ce-overview/                             # 总览 Skill
+    52|    │   └── SKILL.md                             # 架构总览、四大模块关系、目录结构参考
+    53|    │
+    54|    ├── ce-tool-management/                      # 工具管理 Skill
+    55|    │   ├── SKILL.md                             # 入口：工具生命周期、导航
+    56|    │   └── references/
+    57|    │       ├── tool-definition.md
+    58|    │       ├── tool-registry.md
+    59|    │       ├── tool-approval.md
+    60|    │       ├── tool-execution.md
+    61|    │       ├── tool-output.md
+    62|    │       └── tool-implementations.md
+    63|    │
+    64|    ├── ce-context-management/                   # 上下文管理 Skill
+    65|    │   ├── SKILL.md                             # 入口：上下文架构、导航
+    66|    │   └── references/
+    67|    │       ├── context-architecture.md
+    68|    │       ├── context-modules.md
+    69|    │       ├── context-compression.md
+    70|    │       ├── token-strategy.md
+    71|    │       ├── context-problems.md
+    72|    │       └── message-sanitizer.md
+    73|    │
+    74|    ├── ce-llm-module/                           # LLM 模块 Skill
+    75|    │   ├── SKILL.md                             # 入口：统一接口、工厂模式
+    76|    │   └── references/
+    77|    │       ├── service-interface.md
+    78|    │       ├── factory-pattern.md
+    79|    │       └── provider-adapters.md
+    80|    │
+    81|    ├── ce-agent-patterns/                       # Agent 形态 Skill
+    82|    │   ├── SKILL.md                             # 入口：单/多智能体选择
+    83|    │   └── references/
+    84|    │       ├── single-agent.md
+    85|    │       ├── multi-agent.md
+    86|    │       ├── execution-engine.md
+    87|    │       └── agent-interaction.md
+    88|    │
+    89|    └── ce-evaluation/                           # Agent 评估 Skill
+    90|        ├── SKILL.md                             # 入口：评估方法论
+    91|        └── references/
+    92|            ├── eval-methods.md
+    93|            ├── eval-implementation.md
+    94|            └── eval-agent-types.md
+    95|```
+    96|
+    97|## 需要做的事
+    98|
+    99|1. **创建根 README.md**：列出 6 个 skills、各自的使用场景
+   100|2. **删除旧的 SKILL.md 和 references/**
+   101|3. **创建 `skills/ce-overview/SKILL.md`**：从旧 `SKILL.md` + `overview.md` 合并
+   102|4. **创建 `skills/ce-tool-management/`**：SKILL.md 从旧 `tool-management/index.md` 改造，references 移动过来
+   103|5. **创建 `skills/ce-context-management/`**：同理
+   104|6. **创建 `skills/ce-llm-module/`**：同理
+   105|7. **创建 `skills/ce-agent-patterns/`**：同理
+   106|8. **创建 `skills/ce-evaluation/`**：同理
+   107|
+   108|每个 SKILL.md 需要：
+   109|
+   110|- 独立的 frontmatter（name、description）
+   111|- 明确的触发条件
+   112|- references 文件的导航指引
+   113|
+   114|现有 references 文件内容质量没问题，只需要移动位置和调整 SKILL.md 入口。
+</code_selection>
+
+</attached_files>
+
+重构为 Skill 集合（参考 Vercel agent-skills 模式）
+
+Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself.
+
+To-do's from the plan have already been created. Do not create them again. Mark them as in_progress as you work, starting with the first one. Don't stop until you have completed all the to-dos.
+
+---
+
+这个仓库是准备作为这个项目的Skill，我想要为这个上下文实践指南创建一个Skill，
+后续我想要实现的是：如果我想要实现一个上下文实践指南说的上下文组成的时候，我可以使用上下文模块创建的Skill中的文档，如果我想要创建工具管理的话，也可以使用相应的SKill中的文档
+
+重点可以看一下上下文实践指南项目：/Users/xjk/Desktop/docs/Practical Guide to Context Engineering/docs/前言/从零到一：基于上下文工程的 Agent 后端设计.md
+
+上下文实践指南项目：/Users/xjk/Desktop/docs/Practical Guide to Context Engineering
+
+相应的项目：/Users/xjk/Desktop/ScriptCode/context-template-cli/my-llm-app
+实践的项目：/Users/xjk/Desktop/ScriptCode/reason-code/packages/core
+
+我们一起来分析一下这个Skill怎么创建，使用技能创建的SKill/Users/xjk/.agents/skills/skill-creator/SKILL.md
+
+---
+
+需要补充的是：工具管理的Skill的md，它在reasoncode里面设计的非常优秀，所以我喜欢在这个大skill可以嵌套一个小的skill吗？每一个关键的模块都是一个skill，例如：工具管理里面有非常优秀的审核设计，工具的定义，工具的注册，工具的执行状态，这个在reason-code这个项目最明显的实现，我觉得是最佳实现，还有工具输出的压缩之类的
+
+设置这个工具管理的Skill里面还有区分出来一些工具的实现，读取，搜索之类的工具实现，
+
+上下文的管理里面，有各种类，还有上下文压缩的实现等方式
+
+LLM模块正常，还有Agent的评估的方式，
+
+这些都可以详细一些
+
+子智能体一律使用opus4.6的模型，绝对不允许使用其他的模型
+
+---
+
+这几个大模块，里面也可以写Skill的吗？skill里面可以嵌套skill吗？这个是最佳实践吗？
+
+不允许使用子智能体，包括接下来的对话，除非我要求你使用子智能体，不能默认情况下不允许使用子智能体，把这个规则写入到全局规则文件里面，或者全局记忆里面去
+
+---
+
+<external_links>
+### Potentially Relevant Websearch Results
+
+You should respond as if these information are known to you. Refrain from saying "I am unable to browse the internet" or "I don't have access to the internet" or "I'm unable to provide real-time news updates". This is your internet search results. Please always cite any links you referenced from the above search results in your response in markdown format.
+
+-------
+Website URL: https://github.com/vercel-labs/agent-skills?tab=readme-ov-file
+Website Title: GitHub - vercel-labs/agent-skills: Vercel's official collection of agent skills · GitHub
+Website Content:
+Skip to content 
+
+## Navigation Menu
+
+Toggle navigation 
+
+ Sign in 
+
+Appearance settings 
+
+* Platform  
+   * AI CODE CREATION  
+         * GitHub CopilotWrite better code with AI  
+         * GitHub SparkBuild and deploy intelligent apps  
+         * GitHub ModelsManage and compare prompts  
+         * MCP RegistryNewIntegrate external tools  
+   * DEVELOPER WORKFLOWS  
+         * ActionsAutomate any workflow  
+         * CodespacesInstant dev environments  
+         * IssuesPlan and track work  
+         * Code ReviewManage code changes  
+   * APPLICATION SECURITY  
+         * GitHub Advanced SecurityFind and fix vulnerabilities  
+         * Code securitySecure your code as you build  
+         * Secret protectionStop leaks before they start  
+   * EXPLORE  
+         * Why GitHub  
+         * Documentation  
+         * Blog  
+         * Changelog  
+         * Marketplace  
+View all features
+* Solutions  
+   * BY COMPANY SIZE  
+         * Enterprises  
+         * Small and medium teams  
+         * Startups  
+         * Nonprofits  
+   * BY USE CASE  
+         * App Modernization  
+         * DevSecOps  
+         * DevOps  
+         * CI/CD  
+         * View all use cases  
+   * BY INDUSTRY  
+         * Healthcare  
+         * Financial services  
+         * Manufacturing  
+         * Government  
+         * View all industries  
+View all solutions
+* Resources  
+   * EXPLORE BY TOPIC  
+         * AI  
+         * Software Development  
+         * DevOps  
+         * Security  
+         * View all topics  
+   * EXPLORE BY TYPE  
+         * Customer stories  
+         * Events & webinars  
+         * Ebooks & reports  
+         * Business insights  
+         * GitHub Skills  
+   * SUPPORT & SERVICES  
+         * Documentation  
+         * Customer support  
+         * Community forum  
+         * Trust center  
+         * Partners  
+View all resources
+* Open Source  
+   * COMMUNITY  
+         * GitHub SponsorsFund open source developers  
+   * PROGRAMS  
+         * Security Lab  
+         * Maintainer Community  
+         * Accelerator  
+         * GitHub Stars  
+         * Archive Program  
+   * REPOSITORIES  
+         * Topics  
+         * Trending  
+         * Collections
+* Enterprise  
+   * ENTERPRISE SOLUTIONS  
+         * Enterprise platformAI-powered developer platform  
+   * AVAILABLE ADD-ONS  
+         * GitHub Advanced SecurityEnterprise-grade security features  
+         * Copilot for BusinessEnterprise-grade AI features  
+         * Premium SupportEnterprise-grade 24/7 support
+* Pricing
+
+Search or jump to... 
+
+# Search code, repositories, users, issues, pull requests...
+
+ Search 
+
+Clear 
+
+Search syntax tips 
+
+#  Provide feedback
+
+We read every piece of feedback, and take your input very seriously.
+
+Include my email address so I can be contacted 
+
+ Cancel  Submit feedback 
+
+#  Saved searches
+
+## Use saved searches to filter your results more quickly
+
+Name 
+
+Query 
+
+ To see all available qualifiers, see our documentation.
+
+ Cancel  Create saved search 
+
+ Sign in 
+
+ Sign up 
+
+Appearance settings 
+
+Resetting focus 
+
+You signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert 
+
+{{ message }}
+
+ vercel-labs / **agent-skills** Public 
+
+* Notifications You must be signed in to change notification settings
+* Fork2.1k
+* Star 23.3k
+
+* Code
+* Issues 44
+* Pull requests 55
+* Actions
+* Projects
+* Security 0
+* Insights
+
+Additional navigation options 
+
+* Code
+* Issues
+* Pull requests
+* Actions
+* Projects
+* Security
+* Insights
+
+# vercel-labs/agent-skills
+
+main
+
+BranchesTags
+
+Go to file
+
+Code
+
+Open more actions menu
+
+## Folders and files
+
+| Name                                                                                                                                                       | Name                                                                                                                                                       | Last commit message | Last commit date |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | ---------------- |
+| Latest commit History[130 Commits](/vercel-labs/agent-skills/commits/main/)130 Commits                                                                     |                                                                                                                                                            |                     |                  |
+| [.github/workflows](/vercel-labs/agent-skills/tree/main/.github/workflows "This path skips through empty directories")                                     | [.github/workflows](/vercel-labs/agent-skills/tree/main/.github/workflows "This path skips through empty directories")                                     |                     |                  |
+| [packages/react-best-practices-build](/vercel-labs/agent-skills/tree/main/packages/react-best-practices-build "This path skips through empty directories") | [packages/react-best-practices-build](/vercel-labs/agent-skills/tree/main/packages/react-best-practices-build "This path skips through empty directories") |                     |                  |
+| [skills](/vercel-labs/agent-skills/tree/main/skills "skills")                                                                                              | [skills](/vercel-labs/agent-skills/tree/main/skills "skills")                                                                                              |                     |                  |
+| [.gitignore](/vercel-labs/agent-skills/blob/main/.gitignore ".gitignore")                                                                                  | [.gitignore](/vercel-labs/agent-skills/blob/main/.gitignore ".gitignore")                                                                                  |                     |                  |
+| [AGENTS.md](/vercel-labs/agent-skills/blob/main/AGENTS.md "AGENTS.md")                                                                                     | [AGENTS.md](/vercel-labs/agent-skills/blob/main/AGENTS.md "AGENTS.md")                                                                                     |                     |                  |
+| [CLAUDE.md](/vercel-labs/agent-skills/blob/main/CLAUDE.md "CLAUDE.md")                                                                                     | [CLAUDE.md](/vercel-labs/agent-skills/blob/main/CLAUDE.md "CLAUDE.md")                                                                                     |                     |                  |
+| [README.md](/vercel-labs/agent-skills/blob/main/README.md "README.md")                                                                                     | [README.md](/vercel-labs/agent-skills/blob/main/README.md "README.md")                                                                                     |                     |                  |
+| View all files                                                                                                                                             |                                                                                                                                                            |                     |                  |
+
+## Repository files navigation
+
+* README
+
+# Agent Skills
+
+A collection of skills for AI coding agents. Skills are packaged instructions and scripts that extend agent capabilities.
+
+Skills follow the Agent Skills format.
+
+## Available Skills
+
+### react-best-practices
+
+React and Next.js performance optimization guidelines from Vercel Engineering. Contains 40+ rules across 8 categories, prioritized by impact.
+
+**Use when:**
+
+* Writing new React components or Next.js pages
+* Implementing data fetching (client or server-side)
+* Reviewing code for performance issues
+* Optimizing bundle size or load times
+
+**Categories covered:**
+
+* Eliminating waterfalls (Critical)
+* Bundle size optimization (Critical)
+* Server-side performance (High)
+* Client-side data fetching (Medium-High)
+* Re-render optimization (Medium)
+* Rendering performance (Medium)
+* JavaScript micro-optimizations (Low-Medium)
+
+### web-design-guidelines
+
+Review UI code for compliance with web interface best practices. Audits your code for 100+ rules covering accessibility, performance, and UX.
+
+**Use when:**
+
+* "Review my UI"
+* "Check accessibility"
+* "Audit design"
+* "Review UX"
+* "Check my site against best practices"
+
+**Categories covered:**
+
+* Accessibility (aria-labels, semantic HTML, keyboard handlers)
+* Focus States (visible focus, focus-visible patterns)
+* Forms (autocomplete, validation, error handling)
+* Animation (prefers-reduced-motion, compositor-friendly transforms)
+* Typography (curly quotes, ellipsis, tabular-nums)
+* Images (dimensions, lazy loading, alt text)
+* Performance (virtualization, layout thrashing, preconnect)
+* Navigation & State (URL reflects state, deep-linking)
+* Dark Mode & Theming (color-scheme, theme-color meta)
+* Touch & Interaction (touch-action, tap-highlight)
+* Locale & i18n (Intl.DateTimeFormat, Intl.NumberFormat)
+
+### react-native-guidelines
+
+React Native best practices optimized for AI agents. Contains 16 rules across 7 sections covering performance, architecture, and platform-specific patterns.
+
+**Use when:**
+
+* Building React Native or Expo apps
+* Optimizing mobile performance
+* Implementing animations or gestures
+* Working with native modules or platform APIs
+
+**Categories covered:**
+
+* Performance (Critical) - FlashList, memoization, heavy computation
+* Layout (High) - flex patterns, safe areas, keyboard handling
+* Animation (High) - Reanimated, gesture handling
+* Images (Medium) - expo-image, caching, lazy loading
+* State Management (Medium) - Zustand patterns, React Compiler
+* Architecture (Medium) - monorepo structure, imports
+* Platform (Medium) - iOS/Android specific patterns
+
+### composition-patterns
+
+React composition patterns that scale. Helps avoid boolean prop proliferation through compound components, state lifting, and internal composition.
+
+**Use when:**
+
+* Refactoring components with many boolean props
+* Building reusable component libraries
+* Designing flexible APIs
+* Reviewing component architecture
+
+**Patterns covered:**
+
+* Extracting compound components
+* Lifting state to reduce props
+* Composing internals for flexibility
+* Avoiding prop drilling
+
+### vercel-deploy-claimable
+
+Deploy applications and websites to Vercel instantly. Designed for use with claude.ai and Claude Desktop to enable deployments directly from conversations. Deployments are "claimable" - users can transfer ownership to their own Vercel account.
+
+**Use when:**
+
+* "Deploy my app"
+* "Deploy this to production"
+* "Push this live"
+* "Deploy and give me the link"
+
+**Features:**
+
+* Auto-detects 40+ frameworks from `package.json`
+* Returns preview URL (live site) and claim URL (transfer ownership)
+* Handles static HTML projects automatically
+* Excludes `node_modules` and `.git` from uploads
+
+**How it works:**
+
+1. Packages your project into a tarball
+2. Detects framework (Next.js, Vite, Astro, etc.)
+3. Uploads to deployment service
+4. Returns preview URL and claim URL
+
+**Output:**
+
+```
+Deployment successful!
+
+Preview URL: https://skill-deploy-abc123.vercel.app
+Claim URL:   https://vercel.com/claim-deployment?code=...
+
+```
+
+## Installation
+
+npx skills add vercel-labs/agent-skills
+
+## Usage
+
+Skills are automatically available once installed. The agent will use them when relevant tasks are detected.
+
+**Examples:**
+
+```
+Deploy my app
+
+```
+
+```
+Review this React component for performance issues
+
+```
+
+```
+Help me optimize this Next.js page
+
+```
+
+## Skill Structure
+
+Each skill contains:
+
+* `SKILL.md` \- Instructions for the agent
+* `scripts/` \- Helper scripts for automation (optional)
+* `references/` \- Supporting documentation (optional)
+
+## License
+
+MIT
+
+## About
+
+ Vercel's official collection of agent skills
+
+skills.sh/vercel-labs/agent-skills 
+
+### Resources
+
+ Readme 
+
+###  Uh oh!
+
+There was an error while loading. Please reload this page.
+
+Activity 
+
+Custom properties 
+
+### Stars
+
+**23.3k** stars 
+
+### Watchers
+
+**107** watching 
+
+### Forks
+
+**2.1k** forks 
+
+ Report repository 
+
+## Releases
+
+No releases published
+
+## Packages0
+
+###  Uh oh!
+
+There was an error while loading. Please reload this page.
+
+## Contributors18
+
+* @quuu
+* @nandorojo
+* @shuding
+* @claude
+* @elsigh
+* @victor-homyakov
+* @bhrigu123
+* @eps1lon
+* @jaryalarshita
+* @huozhi
+* @tmustier
+* @rexwangcc
+* @ajits01
+* @Mohammadwasifbalti
+
+\+ 4 contributors
+
+## Languages
+
+* JavaScript 41.9%
+* Shell 34.5%
+* TypeScript 23.6%
+
+## Footer
+
+ © 2026 GitHub, Inc. 
+
+### Footer navigation
+
+* Terms
+* Privacy
+* Security
+* Status
+* Community
+* Docs
+* Contact
+* Manage cookies
+* Do not share my personal information
+
+ You can’t perform that action at this time.
+____
+
+</external_links>
+
+现在这个skill设计的一般哈哈哈，我们在调整一下，应该每一个文件是一个skill，最外面只需要一个简单的README
+然后在文件夹的地方统一一下前缀
+
+你可以看看这个的实现：https://github.com/vercel-labs/agent-skills?tab=readme-ov-file
+
+---
+
+<attached_files>
+
+<code_selection path="/Users/xjk/.cursor/plans/重构为多_skill_集合_b99b9a31.plan.md" lines="1-83">
+     1|# 重构为 Skill 集合（参考 Vercel agent-skills 模式）
+     2|
+     3|## Vercel 的模式
+     4|
+     5|参考 [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) 的结构：
+     6|
+     7|- 仓库根目录：`README.md`（列出所有可用 skills）
+     8|- `skills/` 目录：每个子目录是一个独立 Skill
+     9|- 每个 Skill 有自己的 `SKILL.md` + 可选的 `references/`
+    10|
+    11|## 新目录结构
+    12|
+    13|统一使用 `ce-` (context-engineering) 前缀：
+    14|
+    15|```
+    16|context-engineering-skill/
+    17|├── README.md                                    # 仓库说明（列出所有 skills）
+    18|│
+    19|└── skills/
+    20|    ├── ce-overview/                             # 总览 Skill
+    21|    │   └── SKILL.md                             # 架构总览、四大模块关系、目录结构参考
+    22|    │
+    23|    ├── ce-tool-management/                      # 工具管理 Skill
+    24|    │   ├── SKILL.md                             # 入口：工具生命周期、导航
+    25|    │   └── references/
+    26|    │       ├── tool-definition.md
+    27|    │       ├── tool-registry.md
+    28|    │       ├── tool-approval.md
+    29|    │       ├── tool-execution.md
+    30|    │       ├── tool-output.md
+    31|    │       └── tool-implementations.md
+    32|    │
+    33|    ├── ce-context-management/                   # 上下文管理 Skill
+    34|    │   ├── SKILL.md                             # 入口：上下文架构、导航
+    35|    │   └── references/
+    36|    │       ├── context-architecture.md
+    37|    │       ├── context-modules.md
+    38|    │       ├── context-compression.md
+    39|    │       ├── token-strategy.md
+    40|    │       ├── context-problems.md
+    41|    │       └── message-sanitizer.md
+    42|    │
+    43|    ├── ce-llm-module/                           # LLM 模块 Skill
+    44|    │   ├── SKILL.md                             # 入口：统一接口、工厂模式
+    45|    │   └── references/
+    46|    │       ├── service-interface.md
+    47|    │       ├── factory-pattern.md
+    48|    │       └── provider-adapters.md
+    49|    │
+    50|    ├── ce-agent-patterns/                       # Agent 形态 Skill
+    51|    │   ├── SKILL.md                             # 入口：单/多智能体选择
+    52|    │   └── references/
+    53|    │       ├── single-agent.md
+    54|    │       ├── multi-agent.md
+    55|    │       ├── execution-engine.md
+    56|    │       └── agent-interaction.md
+    57|    │
+    58|    └── ce-evaluation/                           # Agent 评估 Skill
+    59|        ├── SKILL.md                             # 入口：评估方法论
+    60|        └── references/
+    61|            ├── eval-methods.md
+    62|            ├── eval-implementation.md
+    63|            └── eval-agent-types.md
+    64|```
+    65|
+    66|## 需要做的事
+    67|
+    68|1. **创建根 README.md**：列出 6 个 skills、各自的使用场景
+    69|2. **删除旧的 SKILL.md 和 references/**
+    70|3. **创建 `skills/ce-overview/SKILL.md`**：从旧 `SKILL.md` + `overview.md` 合并
+    71|4. **创建 `skills/ce-tool-management/`**：SKILL.md 从旧 `tool-management/index.md` 改造，references 移动过来
+    72|5. **创建 `skills/ce-context-management/`**：同理
+    73|6. **创建 `skills/ce-llm-module/`**：同理
+    74|7. **创建 `skills/ce-agent-patterns/`**：同理
+    75|8. **创建 `skills/ce-evaluation/`**：同理
+    76|
+    77|每个 SKILL.md 需要：
+    78|
+    79|- 独立的 frontmatter（name、description）
+    80|- 明确的触发条件
+    81|- references 文件的导航指引
+    82|
+    83|现有 references 文件内容质量没问题，只需要移动位置和调整 SKILL.md 入口。
+</code_selection>
+
+</attached_files>
+
+Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself.
+
+To-do's from the plan have already been created. Do not create them again. Mark them as in_progress as you work, starting with the first one. Don't stop until you have completed all the to-dos.
+
+---
+
+使用skill-creator技能，以这里面的标准来评估一下我的这些skill创建的是否合格
+
+---
+
+<agent_transcripts>
+Agent transcripts (past chats) live in /Users/xjk/.cursor/projects/Users-xjk-Desktop-ScriptCode-context-engineering-skill/agent-transcripts. They have names like <uuid>.jsonl, cite them to the user as [<title for chat <=6 words>](<uuid excluding .jsonl>). NEVER cite subagent transcripts/IDs; you can only cite parent uuids. Don't discuss the folder structure.
+</agent_transcripts>
+
+<agent_skills>
+When users ask you to perform tasks, check if any of the available skills below can help complete the task more effectively. Skills provide specialized capabilities and domain knowledge. To use a skill, read the skill file at the provided absolute path using the Read tool, then follow the instructions within. When a skill is relevant, read and follow it IMMEDIATELY as your first action. NEVER just announce or mention a skill without actually reading and following it. Only use skills listed below.
+
+<available_skills description="Skills the agent can use. Use the Read tool with the provided absolute path to fetch full contents.">
+<agent_skill fullPath="/Users/xjk/.cursor/skills/find-skills/SKILL.md">Helps users discover and install agent skills when they ask questions like "how do I do X", "find a skill for X", "is there a skill that can...", or express interest in extending capabilities. This skill should be used when the user is looking for functionality that might exist as an installable skill.</agent_skill>
+
+<agent_skill fullPath="/Users/xjk/.agents/skills/frontend-design/SKILL.md">Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, artifacts, posters, or applications (examples include websites, landing pages, dashboards, React components, HTML/CSS layouts, or when styling/beautifying any web UI). Generates creative, polished code and UI design that avoids generic AI aesthetics.</agent_skill>
+
+<agent_skill fullPath="/Users/xjk/.agents/skills/skill-creator/SKILL.md">Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skill's description for better triggering accuracy.</agent_skill>
+
+<agent_skill fullPath="/Users/xjk/.claude/skills/backend-koa/SKILL.md">Koa 后端开发规范与架构设计。适用场景：(1) 开发 Koa API 接口，(2) 设计后端分层架构（Controller/Service/DoService），(3) 使用 routing-controllers 装饰器，(4) 实现业务逻辑和数据库操作，(5) 配置中间件和错误处理，(6) 部署到阿里云函数计算。</agent_skill>
+
+<agent_skill fullPath="/Users/xjk/.claude/skills/frontend-react/SKILL.md">React 组件开发规范与最佳实践。适用场景：(1) 编写 React 组件或 Hooks，(2) 实现前端 UI 功能，(3) 管理组件状态（本地/Context/全局），(4) 使用 CSS Modules 编写样式，(5) 处理前端 API 调用，(6) 优化 React 性能，(7) 设置错误边界。</agent_skill>
+
+<agent_skill fullPath="/Users/xjk/.claude/skills/general-standards/SKILL.md" />
+
+<agent_skill fullPath="/Users/xjk/.claude/skills/iterative-retrieval/SKILL.md">渐进式精炼上下文检索的模式，解决子代理上下文问题</agent_skill>
+
+<agent_skill fullPath="/Users/xjk/.claude/skills/module-patterns/SKILL.md">常用业务模块的设计模式与实现规范。适用场景：(1) 实现课程权限控制模块，(2) 开发飞书机器人功能，(3) 实现函数计算异步任务调用，(4) 需要参考成熟的模块设计模式，(5) 设计类似的业务模块架构。</agent_skill>
+
+<agent_skill fullPath="/Users/xjk/.claude/skills/save-session/SKILL.md">手动保存当前会话总结。适用场景：(1) 会话包含重要决策和尝试，(2) 压缩前需要保存关键信息，(3) 需要为下次会话留下清晰的上下文</agent_skill>
+
+<agent_skill fullPath="/Users/xjk/.codex/skills/.system/openai-docs/SKILL.md">Use when the user asks how to build with OpenAI products or APIs and needs up-to-date official documentation with citations, help choosing the latest model for a use case, or explicit GPT-5.4 upgrade and prompt-upgrade guidance; prioritize OpenAI docs MCP tools, use bundled references only as helper context, and restrict any fallback browsing to official OpenAI domains.</agent_skill>
+
+<agent_skill fullPath="/Users/xjk/.codex/skills/.system/skill-creator/SKILL.md">Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Codex's capabilities with specialized knowledge, workflows, or tool integrations.</agent_skill>
+
+<agent_skill fullPath="/Users/xjk/.codex/skills/.system/skill-installer/SKILL.md">Install Codex skills into $CODEX_HOME/skills from a curated list or a GitHub repo path. Use when a user asks to list installable skills, install a curated skill, or install a skill from another repo (including private repos).</agent_skill>
+
+<agent_skill fullPath="/Users/xjk/.cursor/skills-cursor/create-rule/SKILL.md">Create Cursor rules for persistent AI guidance. Use when you want to create a rule, add coding standards, set up project conventions, configure file-specific patterns, create RULE.md files, or asks about .cursor/rules/ or AGENTS.md.</agent_skill>
+
+<agent_skill fullPath="/Users/xjk/.cursor/skills-cursor/create-skill/SKILL.md">Guides users through creating effective Agent Skills for Cursor. Use when you want to create, write, or author a new skill, or asks about skill structure, best practices, or SKILL.md format.</agent_skill>
+
+<agent_skill fullPath="/Users/xjk/.cursor/skills-cursor/update-cursor-settings/SKILL.md">Modify Cursor/VSCode user settings in settings.json. Use when you want to change editor settings, preferences, configuration, themes, font size, tab size, format on save, auto save, keybindings, or any settings.json values.</agent_skill>
+</available_skills>
+</agent_skills>
+
+---
+
+直接执行吧
+
+---
+
+还有我觉得：/Users/xjk/Desktop/ScriptCode/context-engineering-skill/skills/ce-overview/SKILL.md，这里面区分基础版和进阶版很不好，要改进
+
+---
+
+README要说明，使用npx skills add vercel-labs/agent-skills这个也可以安装吧
