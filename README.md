@@ -2,7 +2,7 @@
 
 基于上下文工程的 Agent 后端开发技能集合。
 
-核心理念：**开发重心在上下文的获取和整理，应用的关键核心是 LLM**。保证核心是 LLM，后续模型能力提升时 Agent 效果自然变好；开发重心在上下文，可以发挥应用开发者的能力和创造力。
+核心理念：**开发重心在上下文的获取和整理，应用的关键核心是 LLM**。保证核心是 LLM，后续模型能力提升时 Agent 效果自然变好；将开发重心放在上下文，可以发挥应用开发者的能力和创造力。
 
 ## Skills
 
@@ -17,23 +17,30 @@
 
 ## 安装
 
-### 安装全部 Skills
+### 方式一：通过 Skills CLI 安装（推荐）
 
 ```bash
-git clone https://github.com/your-org/context-engineering-skill.git
+# 安装全部 Skills
+npx skills add xjk/context-engineering-skill
+
+# 安装单个 Skill
+npx skills add xjk/context-engineering-skill/ce-tool-management
+```
+
+### 方式二：手动安装
+
+```bash
+git clone https://github.com/xjk/context-engineering-skill.git
 cp -r context-engineering-skill/skills/ce-* ~/.cursor/skills/
 ```
 
-### 安装单个 Skill
+只安装单个 Skill：
 
 ```bash
-# 例如只安装工具管理模块
 cp -r context-engineering-skill/skills/ce-tool-management ~/.cursor/skills/
 ```
 
 ### 支持的安装目录
-
-Skill 可安装到以下任一位置（按优先级排列）：
 
 | 平台 | 路径 |
 |------|------|
