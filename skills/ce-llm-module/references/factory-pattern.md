@@ -125,6 +125,21 @@ try {
 | SECONDARY | 历史压缩、工具输出摘要 | 成本优先 |
 | FALLBACK | 主模型不可用时降级 | 可用性优先 |
 
+## 工具辅助函数（utils/helpers.ts）
+
+工厂和服务实现中频繁使用的辅助函数，集中在 `utils/helpers.ts` 中统一导出：
+
+- **`extractApiKey(config)`** — 从配置或环境变量（`${PROVIDER}_API_KEY`）中提取 API Key，缺失时抛出明确错误
+- **`getBaseURL(config)`** — 根据供应商返回默认 Base URL（如 DeepSeek → `api.deepseek.com`），支持自定义覆盖
+- **`generateId(prefix?)`** — 为 tool_calls 生成唯一 ID（部分供应商返回的 tool_calls 缺少 id 字段）
+- **`sleep(ms)`** — Promise 化的延迟等待，重试退避策略的基础设施
+- **`isReasoningModel(model)`** — 通过正则匹配判断是否为推理模型（o1/o3/reasoner/deepseek-r 等），推理模型不能设置 temperature
+- **`estimateTokens(text)`** — 不依赖 tokenizer 的 token 粗估（英文 ~4字符/token，中文 ~1.5字符/token）
+- **`normalizeResponse(raw)`** — 将供应商原始响应统一为 LLMResponse 格式（content、tool_calls、usage）
+- **`normalizeToolCalls(raw)`** — 标准化不同供应商的 tool_calls 结构（统一 id、function.name、function.arguments）
+
+设计原则：纯函数为主、防御性编码、集中管理避免重复、不绑定特定供应商逻辑。
+
 ## 设计要点
 
 - **延迟创建**：首次 getService 时才创建实例

@@ -4,6 +4,7 @@ description: |
   Agent LLM 模块 - 通过统一接口和工厂模式对接多种模型供应商。
   包含 ILLMService 统一接口（complete/simpleChat/generate）、
   工厂模式与服务注册表（createLLMService/LLMServiceRegistry/ModelTier分层缓存）、
+  工具辅助函数（extractApiKey/getBaseURL/generateId/estimateTokens/normalizeResponse）、
   多供应商适配（消息格式转换/工具格式转换/流式输出/重试与退避策略）。
   支持 DeepSeek、OpenRouter、OpenAI、Anthropic 等供应商的差异适配。
   当用户需要设计统一 LLM 接口、实现工厂模式、适配多供应商、
@@ -76,9 +77,10 @@ const response = await service.complete(messages, tools);
 
 1. **定义统一接口**：设计 ILLMService（complete/simpleChat）和相关类型（LLMConfig、LLMResponse、ToolCall）（参阅 [references/service-interface.md](references/service-interface.md)）
 2. **实现第一个供应商**：选择主力供应商（如 DeepSeek），实现 complete 和 simpleChat，处理流式输出（参阅 [references/provider-adapters.md](references/provider-adapters.md)）
-3. **添加工厂和注册表**：实现 createLLMService 工厂函数和 LLMServiceRegistry（按 ModelTier 分层缓存）（参阅 [references/factory-pattern.md](references/factory-pattern.md)）
-4. **适配更多供应商**：添加 OpenRouter 等，处理消息/工具格式差异和特殊参数
-5. **添加重试和降级**：实现指数退避重试和 FALLBACK tier 降级
+3. **实现辅助函数**：extractApiKey、getBaseURL、generateId、sleep、estimateTokens、normalizeResponse 等（参阅 [references/factory-pattern.md](references/factory-pattern.md) 的"工具辅助函数"章节）
+4. **添加工厂和注册表**：实现 createLLMService 工厂函数和 LLMServiceRegistry（按 ModelTier 分层缓存）（参阅 [references/factory-pattern.md](references/factory-pattern.md)）
+5. **适配更多供应商**：添加 OpenRouter 等，处理消息/工具格式差异和特殊参数
+6. **添加重试和降级**：实现指数退避重试和 FALLBACK tier 降级
 
 ## 细分文档
 
@@ -88,4 +90,5 @@ const response = await service.complete(messages, tools);
 |---------|---------|
 | 设计统一的 LLM 服务接口 | [references/service-interface.md](references/service-interface.md) |
 | 实现工厂模式和服务管理 | [references/factory-pattern.md](references/factory-pattern.md) |
+| 辅助函数（Key 提取/ID 生成/Token 估算等） | [references/factory-pattern.md](references/factory-pattern.md)（"工具辅助函数"章节） |
 | 适配不同的 LLM 供应商 | [references/provider-adapters.md](references/provider-adapters.md) |
