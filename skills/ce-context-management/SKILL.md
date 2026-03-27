@@ -22,79 +22,113 @@ description: |
 
 开发重心在上下文的**获取和整理**。当模型可以获取到足够的上下文时，设计重点不再是"获取"，而是"整理"——通过修剪、压缩、删除等方式，使保留的上下文既够用又高效。
 
-为什么精简为三类上下文？因为上下文类型越多，组装和维护的复杂度就越高。实践中发现 System/History/CurrentTurn 三类足以覆盖所有场景——Memory、StructuredOutput 等可以融入 SystemPrompt，工具消息融入 CurrentTurn。三类模型既够用又容易理解和调试。
+## 关键设计原则：内部状态与 LLM 消息格式分离
 
-## 三类上下文
+上下文模块的内部数据结构和发送给 LLM 的 message 数组是**两套不同的东西**，必须在概念和实现上分开。
 
-| 类型 | 实现类 | 职责 |
-|------|--------|------|
-| 系统提示词 | SystemPromptContext | 系统指令、规则、角色设定 |
-| 会话历史 | HistoryContext | 对话历史记录，含压缩机制 |
-| 当前轮次 | CurrentTurnContext | 当前对话轮次的消息序列 |
+**内部状态**：每个上下文模块有自己的数据结构（ContextItem、PromptSegment、纯文本等），用于存储、压缩、持久化。这是模块自己的"流转状态"。
 
-基础版（CLI 模板）额外支持更多上下文类型：ConversationContext、MemoryContext、StructuredOutputContext、RelevantContext、ExecutionHistoryContext、ToolMessageSequenceContext。
+**LLM 消息格式**：最终发给 LLM 的 `Message[]` 数组（role/content/tool_calls）。这是 API 协议，不是内部数据结构。
+
+模块不应直接操作 message 格式，而是通过 `format()` 方法声明"我的内容投递到哪里"，由 ContextManager 统一转换。
+
+## 投递目标：只有两种
+
+概念上可以设计任意多种上下文模块，但最终拼接到 message 数组时，所有内容只有两个去向：
+
+| 投递目标 | 含义 | 最终效果 |
+|---------|------|---------|
+| **system** | 合并进唯一的 system message | 多个模块的 system 内容合并为一条 `{"role": "system", "content": "..."}` |
+| **messages** | 放入对话消息列表 | 作为独立的 user/assistant/tool 消息排入数组 |
+
+各模块的 `format()` 返回 `ContextParts`，声明内容投递到 system 还是 messages：
+
+```
+ContextParts {
+  system_parts: SystemPart[]   → 合并为 1 条 system message
+  message_items: ContextItem[] → 逐个转为对话 message
+}
+```
+
+## 上下文模块
+
+| 模块 | 内部存储类型 | 投递到 system | 投递到 messages |
+|------|------------|--------------|----------------|
+| SystemPromptContext | PromptSegment（带优先级的文本片段） | 核心提示词 + 动态 segment | — |
+| LongTermMemoryContext | string（记忆文本） | 用户记忆 | — |
+| ShortTermMemoryContext | ContextItem（对话消息） | 压缩摘要 | 对话消息（user/assistant/tool） |
+
+更多模块可以按需扩展（RAG 检索结果、结构化输出约束等），每个新模块只需决定内容投递到 system 还是 messages。
 
 ## 推荐目录结构
 
 ```
 context/
-├── base/BaseContext.ts          # 上下文基类
+├── base.py                     # BaseContext 抽象基类
+├── types.py                    # ContextItem / ContextParts / SystemPart 等类型
+├── manager.py                  # ContextManager 统一管理器
 ├── modules/
-│   ├── SystemPromptContext.ts   # 系统提示词
-│   ├── HistoryContext.ts        # 会话历史（含压缩）
-│   └── CurrentTurnContext.ts    # 当前轮次
-├── utils/
-│   ├── tokenEstimator.ts        # Token 估算
-│   ├── messageSanitizer.ts      # 消息清理与验证
-│   └── ToolOutputSummarizer.ts  # 工具输出摘要
-├── ContextManager.ts            # 统一管理器
-├── types.ts
-└── index.ts
+│   ├── system_prompt.py        # 系统提示词（分段式）
+│   ├── short_term_memory.py    # 短期记忆（对话 + 压缩）
+│   └── long_term_memory.py     # 长期记忆（持久化）
+└── utils/
+    ├── compressor.py           # 上下文压缩器
+    ├── message_sanitizer.py    # 消息清理与验证
+    └── token_estimator.py      # Token 估算
 ```
 
 ## 上下文组装流程
 
 ```
-ContextManager.getContext()
+ContextManager.get_context()
         │
         ▼
-  检查是否需要压缩（needsCompression）
+  _collect_parts(): 从各模块收集 ContextParts
         │
-  ┌─────┴─────┐
-  │           │
-  是          否
-  │           │
-  ▼           │
-history.compress()  │
-  │           │
-  └─────┬─────┘
-        ▼
-  buildMessages() 组装消息序列：
-        │
-  ┌─────┴─────────────────────────────┐
-  │ 1. system: SystemPromptContext    │
-  │ 2. history: HistoryContext        │
-  │ 3. user: 当前用户输入              │
-  │ 4. current: CurrentTurnContext    │
-  └───────────────────────────────────┘
+  ┌─────┴─────────────────────────────────────┐
+  │ SystemPromptContext.format() → ContextParts│
+  │   system_parts: [SystemPart(...)]         │
+  │   message_items: []                       │
+  │                                           │
+  │ LongTermMemoryContext.format() → ContextParts│
+  │   system_parts: [SystemPart(...)]         │
+  │   message_items: []                       │
+  │                                           │
+  │ ShortTermMemoryContext.format() → ContextParts│
+  │   system_parts: [SystemPart(...)]  (摘要) │
+  │   message_items: [item, item, ...]  (对话) │
+  └─────┬─────────────────────────────────────┘
         │
         ▼
-  sanitizeMessages() 最终验证
+  合并所有 system_parts → 渲染为带 XML 标签的 1 条 system message
+  转换所有 message_items → 逐个 to_message() 为对话 message
         │
         ▼
-  返回 Message[] 给 LLM
+  sanitize_messages() 最终验证（tool_calls 配对检查）
+        │
+        ▼
+  返回 [system_msg, user_msg, assistant_msg, ...] 给 LLM
 ```
 
 ## 实现步骤指引
 
 当帮用户实现上下文管理时，按以下顺序推进：
 
-1. **设计上下文基类**：实现 BaseContext 泛型基类，定义 add/get/format 等标准方法（参阅 [references/context-architecture.md](references/context-architecture.md)）
-2. **实现三类上下文**：SystemPromptContext、HistoryContext、CurrentTurnContext 各自的 format() 和特有方法（参阅 [references/context-modules.md](references/context-modules.md)）
-3. **构建 ContextManager**：统一管理器，实现 getContext() 消息组装和 needsCompression() 阈值检测（参阅 [references/context-architecture.md](references/context-architecture.md)）
-4. **添加压缩机制**：在 HistoryContext 中实现 compress()，选择 LLM 摘要/工具消息裁剪/消息移除策略（参阅 [references/context-compression.md](references/context-compression.md) 和 [references/token-strategy.md](references/token-strategy.md)）
-5. **实现消息清理**：sanitizeMessages 保证 tool_calls 和 tool 响应配对（参阅 [references/message-sanitizer.md](references/message-sanitizer.md)）
-6. **防御上下文问题**：上线后关注污染、干扰、冲突、混淆四类问题（参阅 [references/context-problems.md](references/context-problems.md)）
+1. **定义内部数据结构**：ContextItem（对话消息的内部表示）、SystemPart（带标签的 system 内容）、ContextParts（投递目标容器）（参阅 [references/context-architecture.md](references/context-architecture.md)）
+2. **实现上下文基类**：BaseContext 泛型基类，format() 返回 ContextParts（参阅 [references/context-architecture.md](references/context-architecture.md)）
+3. **实现各上下文模块**：各模块的 format() 声明内容投递到 system 还是 messages（参阅 [references/context-modules.md](references/context-modules.md)）
+4. **构建 ContextManager**：统一管理器，_collect_parts() 收集 + get_context() 组装最终 message 数组（参阅 [references/context-architecture.md](references/context-architecture.md)）
+5. **添加压缩机制**：压缩后的摘要投递到 system_parts，对话消息留在 message_items（参阅 [references/context-compression.md](references/context-compression.md) 和 [references/token-strategy.md](references/token-strategy.md)）
+6. **实现消息清理**：sanitize_messages 保证最终 message 数组中 tool_calls 和 tool 响应配对（参阅 [references/message-sanitizer.md](references/message-sanitizer.md)）
+7. **防御上下文问题**：上线后关注污染、干扰、冲突、混淆四类问题（参阅 [references/context-problems.md](references/context-problems.md)）
+
+## Gotchas
+
+- `format()` 返回的是 `ContextParts`（投递目标声明），不是 `Message[]`。模块不应该知道 LLM API 的 message 格式。
+- 所有 system 内容最终合并为**一条** system message。多条 system message 会导致部分模型报错或忽略后续 system 消息。
+- system_parts 中的 `SystemPart` 带 XML 标签和 description，用于标注每段内容的身份和用途。没有标注的内容在调试时难以辨认。
+- 压缩摘要是 system 级别的背景信息，投递到 system_parts 而不是 message_items。它不是一条独立的对话消息。
+- ContextItem 有 `to_message()` 转换方法（转为 LLM API 格式）和 `to_dict()` 持久化方法（保留所有元数据），这两个用途不同，不要混用。
 
 ## 细分文档
 
@@ -102,8 +136,8 @@ history.compress()  │
 
 | 你的需求 | 阅读文档 |
 |---------|---------|
-| 设计上下文的整体架构 | [references/context-architecture.md](references/context-architecture.md) |
-| 了解各上下文类的实现细节 | [references/context-modules.md](references/context-modules.md) |
+| 设计上下文的整体架构和数据结构 | [references/context-architecture.md](references/context-architecture.md) |
+| 了解各上下文模块的实现细节 | [references/context-modules.md](references/context-modules.md) |
 | 实现上下文压缩机制 | [references/context-compression.md](references/context-compression.md) |
 | 设计 Token 压缩策略 | [references/token-strategy.md](references/token-strategy.md) |
 | 解决上下文问题（污染/干扰/冲突/混淆） | [references/context-problems.md](references/context-problems.md) |

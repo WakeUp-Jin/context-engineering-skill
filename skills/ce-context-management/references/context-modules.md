@@ -1,244 +1,240 @@
-# 各上下文类详解
+# 各上下文模块详解
+
+每个模块继承 `BaseContext<T>`，存储自己的内部状态，通过 `format()` 返回 `ContextParts` 声明内容投递到 system 还是 messages。
 
 ## SystemPromptContext
 
-存储系统提示词，支持多片段拼接：
+存储系统提示词，支持**分段注册**——不同模块可以各自追加系统指令片段（如 skill 目录、工具描述等），最终按优先级合并。
+
+**内部存储类型**：`PromptSegment`（带 id、priority、enabled 的文本片段）
 
 ```typescript
-class SystemPromptContext extends BaseContext<string> {
-  /** 设置系统提示词（替换所有） */
-  setPrompt(prompt: string): void {
-    this.clear();
-    this.add(prompt);
+interface PromptSegment {
+  id: string;         // 片段标识，用于替换和管理
+  content: string;    // 片段内容
+  priority: number;   // 优先级（高 = 排在前面），默认 5
+  enabled: boolean;   // 是否启用
+}
+```
+
+**核心方法**：
+
+```typescript
+class SystemPromptContext extends BaseContext<PromptSegment> {
+
+  constructor(corePrompt?: string) {
+    // 初始化时注册核心提示词片段（priority 最高）
+    this.add({ id: "core", content: corePrompt || DEFAULT_PROMPT, priority: 100, enabled: true });
   }
 
-  /** 获取合并后的完整提示词 */
+  /** 注册/替换一个片段 */
+  registerSegment(segment: PromptSegment): void {
+    this.items = this.items.filter(s => s.id !== segment.id);
+    this.add(segment);
+  }
+
+  /** 按优先级降序合并所有启用的片段为一段文本 */
   getPrompt(): string {
-    return this.getAll().join('\n\n');
+    const enabled = this.items.filter(s => s.enabled);
+    enabled.sort((a, b) => b.priority - a.priority);
+    return enabled.map(s => s.content).filter(c => c.trim()).join("\n\n");
   }
 
-  /** 格式化为一条 system 消息 */
-  format(): Message[] {
+  /** 投递到 system_parts */
+  format(): ContextParts {
     const prompt = this.getPrompt();
-    if (!prompt) return [];
-    return [{ role: 'system', content: prompt }];
+    if (!prompt) return new ContextParts();
+    return new ContextParts({
+      system_parts: [
+        new SystemPart({ tag: "system_prompt", description: "", content: prompt })
+      ]
+    });
   }
 }
 ```
 
-系统提示词可以分片段添加，最终合并为一条 `role: 'system'` 消息。这种设计允许不同模块各自追加系统指令。
+**设计要点**：
+- 核心提示词 `system_prompt` 的 description 为空——它本身就是指令，不需要额外解释
+- Skill 目录、工具描述等通过 `registerSegment()` 动态注入，优先级低于核心提示词
+- 所有片段最终合并为一个 SystemPart，不是多个
 
-## HistoryContext（含压缩机制）
+## ShortTermMemoryContext（对话记忆 + 压缩）
 
-存储会话历史消息，是最复杂的上下文类——内含压缩逻辑：
+管理对话消息流，是最复杂的上下文模块——内含压缩逻辑和持久化。
 
-```typescript
-class HistoryContext extends BaseContext<Message> {
-  private tokenEstimator: TokenEstimator;
+**内部存储类型**：`ContextItem`（不是 `Message`！ContextItem 携带 source、priority、thinking、usage 等元数据）
 
-  /** 格式化为消息数组（直接返回历史） */
-  format(): Message[] {
-    return this.getAll();
-  }
-}
-```
-
-### 压缩流程
-
-当历史过长触发压缩时：
+**关键区分**：format() 同时返回两种投递目标：
+- 压缩摘要 → `system_parts`（属于背景指令级别）
+- 对话消息 → `message_items`（属于对话流）
 
 ```typescript
-async compress(): Promise<CompressionResult> {
-  const messages = this.getAll();
+class ShortTermMemoryContext extends BaseContext<ContextItem> {
+  private summary: string = "";       // 压缩摘要
+  private turnStart: number = 0;      // 当前轮次起始位置
 
-  // 1. 历史太短不压缩
-  if (messages.length < 4) {
-    return { compressed: false, reason: 'too_few_messages' };
+  /** 追加消息到内存 + 持久化 */
+  appendMessage(item: ContextItem): void {
+    this.add(item);
+    this.storage.append(item.toDict());  // 持久化用 toDict()，保留所有元数据
   }
 
-  // 2. 找到分割点：保留最近约 30% 的历史
-  const splitIndex = this.findSplitPoint(messages, 0.3);
+  /** 标记当前轮次起始位置（Agent 每轮开始时调用） */
+  markTurnStart(): void {
+    this.turnStart = this.items.length;
+  }
 
-  // 3. 调整分割点：不能在 tool 调用中间截断
-  const adjustedIndex = this.adjustForToolCalls(messages, splitIndex);
+  /** 投递：摘要 → system，对话 → messages */
+  format(): ContextParts {
+    const parts = new ContextParts();
 
-  // 4. 分割为"要压缩的"和"要保留的"
-  const toCompress = messages.slice(0, adjustedIndex);
-  const toKeep = messages.slice(adjustedIndex);
-
-  // 5. 使用 LLM 生成摘要
-  const summary = await this.generateSummary(toCompress);
-
-  // 6. 提取文件引用（在摘要中保留）
-  const files = this.extractRetainedFiles(toCompress);
-
-  // 7. 替换历史：[摘要消息, ...保留的历史]
-  const summaryMessage: Message = {
-    role: 'system',
-    content: `[对话历史摘要]\n${summary}\n\n[历史中涉及的文件]: ${files.join(', ')}`,
-  };
-
-  this.replace([summaryMessage, ...toKeep]);
-
-  return { compressed: true, removedCount: toCompress.length };
-}
-```
-
-### 分割点计算
-
-从后往前累加 token，直到达到保留比例：
-
-```typescript
-private findSplitPoint(messages: Message[], preserveRatio: number): number {
-  const totalTokens = this.tokenEstimator.estimateMessages(messages);
-  const preserveTokens = totalTokens * preserveRatio;
-
-  let accumulated = 0;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    accumulated += this.tokenEstimator.estimateMessages([messages[i]]);
-    if (accumulated >= preserveTokens) {
-      return i;
+    if (this.summary) {
+      parts.system_parts.push(
+        new SystemPart({
+          tag: "conversation_summary",
+          description: "以下是之前对话的压缩摘要",
+          content: this.summary,
+        })
+      );
     }
+
+    parts.message_items.push(...this.items);
+    return parts;
   }
-  return 0;
 }
 ```
 
-### 工具调用边界调整
+**为什么摘要投递到 system 而不是 messages？**
 
-不能在 tool_calls 和对应 tool 响应之间截断：
+摘要是对过去对话的浓缩背景，属于"Agent 需要知道的背景信息"，和系统提示词、用户记忆是同一层级。如果放到 messages 里作为一条独立消息，它会：
+- 产生额外的 system message（多条 system 消息问题）
+- 或者作为 user/assistant 消息，角色语义不对
+
+### 轮次跟踪
+
+`turnStart` 标记当前轮次在 items 列表中的起始位置：
+
+```
+items: [旧消息...] [当前轮次消息...]
+                    ↑ turnStart
+
+压缩只动 turnStart 之前的消息，当前轮次始终受保护。
+```
+
+### 启动时的加载与清理
+
+从持久化存储恢复时，使用 `ContextItem.fromDict()` 保留所有元数据，然后做 sanitize：
 
 ```typescript
-private adjustForToolCalls(messages: Message[], index: number): number {
-  // 如果 index 处的消息是 tool 响应，向前移动到对应的 assistant 消息之前
-  while (index > 0 && messages[index].role === 'tool') {
-    index--;
+private loadMemory(): void {
+  const checkpoint = this.storage.loadCheckpoint();
+
+  if (checkpoint) {
+    this.summary = checkpoint.summary;
+    const raw = this.storage.loadFromLine(checkpoint.keptFromLine);
+    this.items = raw.map(d => ContextItem.fromDict(d));  // 从持久化格式恢复
+  } else {
+    this.items = this.storage.loadAll().map(d => ContextItem.fromDict(d));
   }
-  // 如果 index 处是带 tool_calls 的 assistant，也需要包含后续的 tool 响应
-  if (messages[index].role === 'assistant' && messages[index].tool_calls) {
-    // 找到所有对应 tool 响应的结束位置
-    const toolCallIds = new Set(messages[index].tool_calls.map(tc => tc.id));
-    let endIndex = index + 1;
-    while (endIndex < messages.length
-      && messages[endIndex].role === 'tool'
-      && toolCallIds.has(messages[endIndex].tool_call_id)) {
-      endIndex++;
-    }
-    index = endIndex;
-  }
-  return index;
+
+  this.sanitizeOnLoad();  // 清理不完整的 tool 调用链
+  this.turnStart = this.items.length;
 }
 ```
 
-## CurrentTurnContext
+## LongTermMemoryContext
 
-管理当前对话轮次的消息（工具调用和响应）：
+持久化用户记忆，跨会话保存。内容全部投递到 system。
+
+**内部存储类型**：`string`（记忆文本）
 
 ```typescript
-class CurrentTurnContext extends BaseContext<Message> {
-  format(): Message[] {
-    return this.getAll();
-  }
+class LongTermMemoryContext extends BaseContext<string> {
+  private store: MemoryStore;  // 文件系统持久化
 
-  /** 将当前轮次归档到历史 */
-  archiveTo(history: HistoryContext, userInput: string): void {
-    // 先归档用户输入
-    history.add({ role: 'user', content: userInput });
-    // 再归档当前轮次的所有消息
-    for (const msg of this.getAll()) {
-      history.add(msg);
-    }
-    // 清空当前轮次
+  /** 从持久化存储刷新到内存 */
+  refresh(): void {
     this.clear();
+    const text = this.store.getMemoryText();
+    if (text?.trim()) this.add(text);
   }
 
-  /** 检查是否有 tool 调用 */
-  hasToolCalls(): boolean {
-    return this.getAll().some(
-      msg => msg.role === 'assistant' && msg.tool_calls?.length
-    );
-  }
+  /** 全部投递到 system_parts */
+  format(): ContextParts {
+    const allText = this.getAll();
+    let text: string;
 
-  /** 检查是否有未完成的 tool 调用 */
-  hasPendingToolCalls(): boolean {
-    const assistantMsgs = this.getAll().filter(
-      msg => msg.role === 'assistant' && msg.tool_calls?.length
-    );
-    const toolResponses = this.getAll().filter(msg => msg.role === 'tool');
-    const responseIds = new Set(toolResponses.map(m => m.tool_call_id));
-
-    return assistantMsgs.some(msg =>
-      msg.tool_calls?.some(tc => !responseIds.has(tc.id))
-    );
-  }
-
-  /** 获取最后一条 assistant 消息 */
-  getLastAssistantMessage(): Message | undefined {
-    const all = this.getAll();
-    for (let i = all.length - 1; i >= 0; i--) {
-      if (all[i].role === 'assistant') return all[i];
+    if (allText.length === 0) {
+      const stored = this.store.getMemoryText();
+      if (!stored?.trim()) return new ContextParts();
+      text = stored;
+    } else {
+      text = allText.join("\n");
     }
-    return undefined;
-  }
 
-  /** 中断场景下的清理 */
-  sanitize(): void {
-    const cleaned = sanitizeCurrentTurn(this.getAll());
-    this.replace(cleaned);
+    return new ContextParts({
+      system_parts: [
+        new SystemPart({
+          tag: "long_term_memory",
+          description: "以下是你对用户的长期记忆，请基于这些信息个性化回复",
+          content: text,
+        })
+      ]
+    });
   }
 }
 ```
 
-## 基础版额外的上下文类型
+**设计要点**：
+- description 承担了"行为指引"的作用——告诉模型这段内容是什么、怎么用
+- 写入记忆不通过 format()，而是通过 MemoryStore / 记忆工具直接写入
 
-CLI 模板项目提供了更多上下文类型，适合不同场景：
+## 扩展模块示例
 
-### ConversationContext
+概念上可以设计更多模块，每个模块只需决定投递到 system 还是 messages：
+
+### RAG 检索结果
 
 ```typescript
-class ConversationContext extends BaseContext<Message> {
-  // 纯对话历史，不含压缩逻辑
+class RAGContext extends BaseContext<RetrievedChunk> {
+  format(): ContextParts {
+    if (this.isEmpty()) return new ContextParts();
+    const content = this.items.map(c => c.text).join("\n\n---\n\n");
+    return new ContextParts({
+      system_parts: [
+        new SystemPart({
+          tag: "retrieved_context",
+          description: "以下是从知识库检索到的相关内容，请基于这些信息回答",
+          content,
+        })
+      ]
+    });
+  }
 }
 ```
 
-### MemoryContext
-
-```typescript
-class MemoryContext extends BaseContext<MemoryEntry> {
-  // 用户记忆（key/value），支持跨会话持久化
-  set(key: string, value: string): void;
-  get(key: string): string | undefined;
-}
-```
-
-### StructuredOutputContext
+### 结构化输出约束
 
 ```typescript
 class StructuredOutputContext extends BaseContext<OutputSchema> {
-  // 结构化输出约束，如 JSON Schema
-  // 注入到 system prompt 中指导 LLM 输出格式
-}
-```
-
-### RelevantContext
-
-```typescript
-class RelevantContext extends BaseContext<ContextChunk> {
-  // 场景相关上下文（如 RAG 检索结果）
-}
-```
-
-### ToolMessageSequenceContext
-
-```typescript
-class ToolMessageSequenceContext extends BaseContext<Message> {
-  // 工具调用链：assistant → tool → assistant → tool...
-  // 维护 tool_calls 和 tool 响应的配对关系
+  format(): ContextParts {
+    if (this.isEmpty()) return new ContextParts();
+    const schemas = this.items.map(s => JSON.stringify(s, null, 2)).join("\n");
+    return new ContextParts({
+      system_parts: [
+        new SystemPart({
+          tag: "output_format",
+          description: "请严格按照以下格式输出",
+          content: schemas,
+        })
+      ]
+    });
+  }
 }
 ```
 
 ## 选择建议
 
-- **入门项目**：使用基础版的 7 种上下文，结构清晰、职责明确
-- **生产项目**：使用进阶版的 3 种上下文（System/History/CurrentTurn），更精简、性能更好
-- 进阶版将 Memory、StructuredOutput 等融入 SystemPromptContext，将工具消息融入 CurrentTurnContext
+- **最小可行版**：SystemPromptContext + ShortTermMemoryContext 两个模块即可运行
+- **标准版**：加上 LongTermMemoryContext，支持跨会话记忆
+- **进阶版**：按需扩展 RAG、结构化输出等模块——每个新模块只需实现 `format() → ContextParts`
